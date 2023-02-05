@@ -1,20 +1,47 @@
 import { ServerRespond } from './DataStreamer';
 
 export interface Row {
-  stock: string,
-  top_ask_price: number,
+  price_abc: number,
+  price_def: number,
+  ratio: number,
   timestamp: Date,
+  upper_bound: number,
+  lower_bound: number,
+  trigger_alert: number | undefined,
 }
 
+let avgRatios: Array<number> = [];
+
+function calculateAvgRatio() {
+  let runningTotal = 0;
+  let numOfItems = avgRatios.length;
+
+  for(let i = 0; i < numOfItems; i++) {
+    runningTotal += avgRatios[i];
+  }
+
+  return runningTotal / numOfItems;
+}
 
 export class DataManipulator {
-  static generateRow(serverResponds: ServerRespond[]) {
-    return serverResponds.map((el: any) => {
-      return {
-        stock: el.stock,
-        top_ask_price: el.top_ask && el.top_ask.price || 0,
-        timestamp: el.timestamp,
-      };
-    })
+  static generateRow(serverRespond: ServerRespond[]): Row {
+    const priceABC = (serverRespond[0].top_ask.price + serverRespond[0].top_bid.price) / 2;
+    const priceDEF = (serverRespond[1].top_ask.price + serverRespond[1].top_bid.price) / 2;
+
+    const ratio = priceABC / priceDEF;
+    avgRatios.push(ratio);
+
+    const upperBound = avgRatios.length < 12 ? 1 + 0.05 : calculateAvgRatio() + 0.05;
+    const lowerBound = avgRatios.length < 12 ? 1 - 0.05 : calculateAvgRatio() - 0.05;
+
+    return {
+      price_abc: priceABC,
+      price_def: priceDEF,
+      ratio: ratio,
+      timestamp: serverRespond[0].timestamp > serverRespond[1].timestamp ? serverRespond[0].timestamp : serverRespond[1].timestamp,
+      upper_bound: upperBound,
+      lower_bound: lowerBound,
+      trigger_alert: (ratio > upperBound) || (ratio < lowerBound) ? ratio: undefined,
+    };
   }
 }
