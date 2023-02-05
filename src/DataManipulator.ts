@@ -31,8 +31,8 @@ export class DataManipulator {
     const ratio = priceABC / priceDEF;
     avgRatios.push(ratio);
 
-    const upperBound = avgRatios.length < 12 ? 1 + 0.05 : calculateAvgRatio() + 0.05;
-    const lowerBound = avgRatios.length < 12 ? 1 - 0.05 : calculateAvgRatio() - 0.05;
+    const upperBound = calculateAvgRatio() + 0.05;
+    const lowerBound = calculateAvgRatio() - 0.05;
 
     return {
       price_abc: priceABC,
